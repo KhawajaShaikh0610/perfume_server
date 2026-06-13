@@ -1,4 +1,4 @@
-const { Order, OrderItem, Perfume, sequelize } = require('../models');
+const { Order, OrderItem, Perfume, PerfumeSize, sequelize } = require('../models');
 
 // @desc    Get all orders (admin)
 // @route   GET /api/orders
@@ -52,26 +52,42 @@ const addOrderItems = async (req, res) => {
 
     // Create order items
     for (const item of orderItems) {
-      const perfume = await Perfume.findByPk(item.perfumeId);
+      const perfume = await Perfume.findByPk(item.perfumeId, {
+        include: [{ model: PerfumeSize, as: 'sizes' }]
+      });
       
       if (!perfume) {
         throw new Error(`Perfume not found: ${item.perfumeId}`);
       }
 
-      if (perfume.stock < item.quantity) {
-        throw new Error(`Insufficient stock for ${perfume.name}`);
+      let price = 0;
+      let sizeText = item.size || null;
+
+      // Check if perfume has associated sizes
+      if (perfume.sizes && perfume.sizes.length > 0) {
+        // Find the matching size record from the DB
+        const sizeRecord = perfume.sizes.find(s => s.size === item.size);
+        if (!sizeRecord) {
+          throw new Error(`Size ${item.size} not found for perfume ${perfume.name}`);
+        }
+
+        if (sizeRecord.stock < item.quantity) {
+          throw new Error(`Insufficient stock for ${perfume.name} (${item.size})`);
+        }
+
+        price = sizeRecord.price;
+      } else {
+        // Fallback for items without size records in PerfumeSize
+        price = parseFloat(item.price) || 0;
       }
 
       await OrderItem.create({
         orderId: order.id,
         perfumeId: item.perfumeId,
         quantity: item.quantity,
-        price: perfume.price // Use current price from DB
+        price,
+        size: sizeText
       }, { transaction: t });
-
-      // Update stock
-      perfume.stock -= item.quantity;
-      await perfume.save({ transaction: t });
     }
 
     await t.commit();
@@ -125,10 +141,39 @@ const getMyOrders = async (req, res) => {
 // @access  Private/Admin
 const updateOrderStatus = async (req, res) => {
   try {
-    const order = await Order.findByPk(req.params.id);
+    const order = await Order.findByPk(req.params.id, {
+      include: [{ model: OrderItem, as: 'items' }]
+    });
 
     if (order) {
-      order.status = req.body.status || order.status;
+      const oldStatus = order.status;
+      const newStatus = req.body.status || order.status;
+
+      // If status is changed to shipped, reduce quantity from stock (not going below 0)
+      if (newStatus === 'shipped' && oldStatus !== 'shipped') {
+        const t = await sequelize.transaction();
+        try {
+          for (const item of order.items) {
+            const perfume = await Perfume.findByPk(item.perfumeId, {
+              include: [{ model: PerfumeSize, as: 'sizes' }]
+            });
+
+            if (perfume && perfume.sizes && perfume.sizes.length > 0) {
+              const sizeRecord = perfume.sizes.find(s => s.size === item.size);
+              if (sizeRecord) {
+                sizeRecord.stock = Math.max(0, sizeRecord.stock - item.quantity);
+                await sizeRecord.save({ transaction: t });
+              }
+            }
+          }
+          await t.commit();
+        } catch (err) {
+          await t.rollback();
+          return res.status(500).json({ message: `Failed to update stock: ${err.message}` });
+        }
+      }
+
+      order.status = newStatus;
       order.paymentStatus = req.body.paymentStatus || order.paymentStatus;
 
       const updatedOrder = await order.save();
