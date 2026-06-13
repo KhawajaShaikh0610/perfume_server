@@ -160,7 +160,7 @@ const adminLogin = async (req, res) => {
     res.json({
       id: 'admin',
       name: 'Administrator',
-      email: 'admin@loren.com',
+      email: 'shaikhkhawaja0610@gmail.com',
       role: 'admin',
       token,
     });

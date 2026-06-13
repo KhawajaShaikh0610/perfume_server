@@ -27,6 +27,10 @@ const Perfume = sequelize.define('Perfume', {
     type: DataTypes.JSON,
     defaultValue: []
   },
+  videoUrls: {
+    type: DataTypes.JSON,
+    defaultValue: []
+  },
   rating: {
     type: DataTypes.DECIMAL(2, 1),
     defaultValue: 5.0
