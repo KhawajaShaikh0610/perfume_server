@@ -51,6 +51,8 @@ const User = sequelize.define('User', {
       }
     }
   }
+}, {
+  tableName: 'users',
 });
 
 User.prototype.comparePassword = async function (enteredPassword) {

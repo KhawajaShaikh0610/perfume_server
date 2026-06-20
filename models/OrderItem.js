@@ -20,6 +20,8 @@ const OrderItem = sequelize.define('OrderItem', {
     type: DataTypes.STRING,
     allowNull: true
   }
+}, {
+  tableName: 'orderitems',
 });
 
 module.exports = OrderItem;

@@ -23,6 +23,8 @@ const PerfumeSize = sequelize.define('PerfumeSize', {
         type: DataTypes.INTEGER,
         defaultValue: 0
     },
+}, {
+    tableName: 'perfumesizes',
 });
 
 module.exports = PerfumeSize;

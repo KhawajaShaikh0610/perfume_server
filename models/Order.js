@@ -40,6 +40,8 @@ const Order = sequelize.define('Order', {
     type: DataTypes.STRING,
     allowNull: true
   }
+}, {
+  tableName: 'orders',
 });
 
 module.exports = Order;
