@@ -32,19 +32,19 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    console.log("Starting server...");
+
     await connectDB();
-    
-    // Sync models (creates tables if they don't exist)
-    // In production, use migrations instead of { alter: true }
-    await sequelize.sync({ alter: true });
-    console.log('Models synchronized with database.');
+    console.log("Database connected");
+
+    // Temporarily disable this
+    // await sequelize.sync({ alter: true });
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
-    console.error('Error starting server:', error);
+    console.error("Error starting server:", error);
   }
 };
-
 startServer();
