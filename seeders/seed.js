@@ -222,7 +222,7 @@ const seed = async () => {
     console.log('✓ Database connected');
 
     // Sync models (creates/alters tables)
-    await sequelize.sync({ alter: true });
+    await sequelize.sync();
     console.log('✓ Models synchronized');
 
     // Seed categories
